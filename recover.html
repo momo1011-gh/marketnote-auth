@@ -7,7 +7,7 @@
     <meta name="robots" content="noindex,nofollow" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'sha256-quhOEYivz+eOukEDZxZONqnx50GJnqpaKzmlIVluK2w='; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; connect-src 'none'"
+      content="default-src 'none'; script-src 'sha256-DxdEOoF7hLnNvKJoORXuuOdbY7TsHj0iFhUNtmuI4qQ='; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; connect-src 'none'"
     />
     <title>MarketNote — eBay完了画面から戻る</title>
     <style>
@@ -74,7 +74,9 @@
       <ol>
         <li>MacのMarketNoteで「eBayに接続する」を押し、eBayで読み取り権限を許可してください。</li>
         <li>完了画面のアドレス欄をクリックし、⌘＋A、⌘＋Cでアドレス全体をコピーしてください。</li>
-        <li>このページの下の欄に貼り付け、「認証結果を確認」を押してください。</li>
+        <li>
+          このページの下の欄に貼り付け、「認証結果を確認」を押してください。正常なら自動でMacに戻ります。
+        </li>
       </ol>
       <label for="result-url">eBay完了画面のアドレス全体</label
       ><input
@@ -86,7 +88,8 @@
         placeholder="ここに貼り付ける。チャットには送らないでください。"
       /><button id="prepare" type="button">認証結果を確認</button>
       <p id="message" role="status">
-        認証開始から5分以内に、同じMac・同じブラウザで操作してください。
+        確認番号
+        0：貼り付け待ちです。認証開始から5分以内に、同じMac・同じブラウザで操作してください。
       </p>
       <a id="return" class="button" hidden rel="noreferrer">MacのMarketNoteへ戻る</a
       ><small
@@ -98,48 +101,79 @@
     <script>
       'use strict';
       (() => {
-        const input = document.getElementById('result-url');
-        const message = document.getElementById('message');
-        const back = document.getElementById('return');
+        const input = document.getElementById('result-url'),
+          message = document.getElementById('message'),
+          back = document.getElementById('return');
+        let timer;
         document.getElementById('prepare').addEventListener('click', () => {
-          const value = input.value;
+          clearTimeout(timer);
+          const value = input.value.trim();
           input.value = '';
           back.hidden = true;
           back.removeAttribute('href');
-          try {
-            if (window.top !== window.self || value.length > 8000) throw Error();
-            const result = new URL(value.trim());
-            if (
-              result.origin !== 'https://auth2.ebay.com' ||
-              result.pathname !== '/oauth2/ThirdPartyAuthSucessFailure' ||
-              result.username ||
-              result.password ||
-              result.hash
-            )
-              throw Error();
-            const params = result.searchParams;
-            const code = params.get('code');
-            const state = params.get('state');
-            if (
-              params.has('error') ||
-              params.getAll('code').length !== 1 ||
-              params.getAll('state').length !== 1 ||
-              !code ||
-              code.length > 1024 ||
-              !state ||
-              !/^[A-Za-z0-9_-]{43}$/.test(state)
-            )
-              throw Error();
-            const target = new URL('http://127.0.0.1:3000/ebay-return');
-            target.hash = new URLSearchParams({ code, state }).toString();
-            back.href = target.toString();
-            back.hidden = false;
+          const fail = (number, text) => {
             message.textContent =
-              '確認できました。下の「MacのMarketNoteへ戻る」を押してください。認証を開始した同じMac・ブラウザで操作してください。';
-          } catch {
-            message.textContent =
-              '認証結果に必要な情報がありません。MarketNoteからもう一度「eBayに接続する」を押し、完了画面のアドレスを省略せずにコピーしてください。このチャットへ送る必要はありません。';
+              '確認番号 ' +
+              number +
+              '：' +
+              text +
+              ' この番号だけチャットで教えてください。アドレスは送らないでください。';
+          };
+          if (window.top !== window.self || value.length > 8000) {
+            fail(2, 'この画面では確認できません。');
+            return;
           }
+          let result;
+          try {
+            result = new URL(value);
+          } catch {
+            fail(
+              1,
+              'アドレスではなく文章が貼り付けられています。「Thank You」の画面で⌘＋L、⌘＋Cを押してコピーしてください。',
+            );
+            return;
+          }
+          if (
+            result.origin !== 'https://auth2.ebay.com' ||
+            result.pathname !== '/oauth2/ThirdPartyAuthSucessFailure' ||
+            result.username ||
+            result.password ||
+            result.hash
+          ) {
+            fail(2, 'eBayの完了画面のアドレスではありません。');
+            return;
+          }
+          const params = result.searchParams,
+            code = params.get('code'),
+            state = params.get('state');
+          if (params.has('error')) {
+            fail(2, 'eBayで許可が完了していません。');
+            return;
+          }
+          if (!code) {
+            fail(3, 'このアドレスに認証コードが含まれていません。');
+            return;
+          }
+          if (!state) {
+            fail(4, '認証したブラウザを照合する情報が含まれていません。');
+            return;
+          }
+          if (
+            params.getAll('code').length !== 1 ||
+            params.getAll('state').length !== 1 ||
+            code.length > 1024 ||
+            !/^[A-Za-z0-9_-]{43}$/.test(state)
+          ) {
+            fail(2, '認証情報の形式を確認できません。');
+            return;
+          }
+          const target = new URL('http://127.0.0.1:3000/ebay-return');
+          target.hash = new URLSearchParams({ code, state }).toString();
+          back.href = target.toString();
+          back.hidden = false;
+          message.textContent =
+            '確認番号 5：必要な情報が揃いました。自動でMacに戻ります。次の画面で「読み取り権限を保存しました」と表示されるまで待ってください。';
+          timer = setTimeout(() => window.location.assign(target.toString()), 1500);
         });
       })();
     </script>
