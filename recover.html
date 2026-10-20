@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'sha256-quhOEYivz+eOukEDZxZONqnx50GJnqpaKzmlIVluK2w='; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; connect-src 'none'"
+    />
+    <title>MarketNote — eBay完了画面から戻る</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f6f5ef;
+        color: #253b30;
+        margin: 0;
+        padding: 36px 18px;
+        line-height: 1.8;
+      }
+      main {
+        max-width: 620px;
+        margin: auto;
+        padding: 28px;
+        background: white;
+        border-radius: 20px;
+      }
+      label {
+        display: block;
+        font-weight: 600;
+      }
+      input {
+        box-sizing: border-box;
+        width: 100%;
+        font-size: 16px;
+        padding: 12px;
+        margin: 10px 0 16px;
+        border: 1px solid #879c8f;
+        border-radius: 8px;
+      }
+      button,
+      .button {
+        display: inline-block;
+        background: #225c42;
+        color: white;
+        padding: 12px 20px;
+        border: 0;
+        border-radius: 10px;
+        text-decoration: none;
+        font: inherit;
+        cursor: pointer;
+      }
+      [hidden] {
+        display: none;
+      }
+      small {
+        display: block;
+        margin-top: 24px;
+        color: #536059;
+      }
+      a {
+        color: #225c42;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>eBayの完了画面から戻る</h1>
+      <p>
+        「Thank You / Authorization successfully
+        completed」と表示され、MarketNoteに戻らなかった場合の補助ページです。
+      </p>
+      <ol>
+        <li>MacのMarketNoteで「eBayに接続する」を押し、eBayで読み取り権限を許可してください。</li>
+        <li>完了画面のアドレス欄をクリックし、⌘＋A、⌘＋Cでアドレス全体をコピーしてください。</li>
+        <li>このページの下の欄に貼り付け、「認証結果を確認」を押してください。</li>
+      </ol>
+      <label for="result-url">eBay完了画面のアドレス全体</label
+      ><input
+        id="result-url"
+        type="password"
+        autocomplete="off"
+        spellcheck="false"
+        maxlength="8000"
+        placeholder="ここに貼り付ける。チャットには送らないでください。"
+      /><button id="prepare" type="button">認証結果を確認</button>
+      <p id="message" role="status">
+        認証開始から5分以内に、同じMac・同じブラウザで操作してください。
+      </p>
+      <a id="return" class="button" hidden rel="noreferrer">MacのMarketNoteへ戻る</a
+      ><small
+        >貼り付けたアドレスはこのページ内で処理します。外部サーバーへ送信せず、ブラウザ保存領域にも保存しません。Mac側でもブラウザ・認証の一致と期限を照合します。この操作では出品・価格変更・返金は行いません。</small
+      >
+      <p><a href="./privacy.html" rel="noreferrer">プライバシーについて</a></p>
+      <noscript>このページにはJavaScriptが必要です。</noscript>
+    </main>
+    <script>
+      'use strict';
+      (() => {
+        const input = document.getElementById('result-url');
+        const message = document.getElementById('message');
+        const back = document.getElementById('return');
+        document.getElementById('prepare').addEventListener('click', () => {
+          const value = input.value;
+          input.value = '';
+          back.hidden = true;
+          back.removeAttribute('href');
+          try {
+            if (window.top !== window.self || value.length > 8000) throw Error();
+            const result = new URL(value.trim());
+            if (
+              result.origin !== 'https://auth2.ebay.com' ||
+              result.pathname !== '/oauth2/ThirdPartyAuthSucessFailure' ||
+              result.username ||
+              result.password ||
+              result.hash
+            )
+              throw Error();
+            const params = result.searchParams;
+            const code = params.get('code');
+            const state = params.get('state');
+            if (
+              params.has('error') ||
+              params.getAll('code').length !== 1 ||
+              params.getAll('state').length !== 1 ||
+              !code ||
+              code.length > 1024 ||
+              !state ||
+              !/^[A-Za-z0-9_-]{43}$/.test(state)
+            )
+              throw Error();
+            const target = new URL('http://127.0.0.1:3000/ebay-return');
+            target.hash = new URLSearchParams({ code, state }).toString();
+            back.href = target.toString();
+            back.hidden = false;
+            message.textContent =
+              '確認できました。下の「MacのMarketNoteへ戻る」を押してください。認証を開始した同じMac・ブラウザで操作してください。';
+          } catch {
+            message.textContent =
+              '認証結果に必要な情報がありません。MarketNoteからもう一度「eBayに接続する」を押し、完了画面のアドレスを省略せずにコピーしてください。このチャットへ送る必要はありません。';
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
