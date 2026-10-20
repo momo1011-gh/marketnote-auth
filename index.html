@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'sha256-V+uy+ZWBPW1KbrB0u0gzhn9XrH62gSRTtHxgD5WQccc='; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; connect-src 'none'"
+    />
+    <title>MarketNote — eBay認証の戻り先</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #f6f5ef;
+        color: #253b30;
+        margin: 0;
+        padding: 48px 20px;
+        line-height: 1.8;
+      }
+      main {
+        max-width: 620px;
+        margin: auto;
+        padding: 32px;
+        background: white;
+        border-radius: 20px;
+      }
+      a {
+        color: #225c42;
+      }
+      .button {
+        display: inline-block;
+        background: #225c42;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 10px;
+        text-decoration: none;
+      }
+      [hidden] {
+        display: none;
+      }
+      small {
+        display: block;
+        margin-top: 24px;
+        color: #536059;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>MarketNoteへ戻る</h1>
+      <p id="message" role="status">認証結果を確認しています…</p>
+      <a id="return" class="button" hidden rel="noreferrer">MacのMarketNoteへ戻る</a
+      ><noscript
+        >このページにはJavaScriptが必要です。MacのMarketNoteに戻ってください。認証コードはチャットに送らないでください。</noscript
+      ><small
+        >このページだけで出品・価格変更は行いません。認証コードやURLをチャットに貼り付ける必要はありません。</small
+      >
+      <p><a href="./privacy.html" rel="noreferrer">プライバシーについて</a></p>
+    </main>
+    <script>
+      'use strict';
+      (() => {
+        const input = window.location.search;
+        window.history.replaceState(null, '', window.location.pathname);
+        const message = document.getElementById('message');
+        const back = document.getElementById('return');
+        try {
+          if (window.top !== window.self || input.length > 8000) throw Error();
+          const params = new URLSearchParams(input);
+          if (params.has('error')) {
+            message.textContent =
+              'eBayへの接続は許可されませんでした。MacのMarketNoteに戻り、必要な場合だけ接続をやり直してください。';
+            return;
+          }
+          const code = params.get('code');
+          const state = params.get('state');
+          if (
+            params.getAll('code').length !== 1 ||
+            params.getAll('state').length !== 1 ||
+            !code ||
+            code.length > 1024 ||
+            !state ||
+            !/^[A-Za-z0-9_-]{43}$/.test(state)
+          )
+            throw Error();
+          const target = new URL('http://127.0.0.1:3000/ebay-return');
+          target.hash = new URLSearchParams({ code, state }).toString();
+          back.href = target.toString();
+          back.hidden = false;
+          message.textContent =
+            '認証を開始したMacで、下のボタンを押してください。MarketNoteを起動したままにしてください。';
+        } catch {
+          message.textContent =
+            '認証結果を確認できません。MacのMarketNoteから接続をやり直してください。';
+        }
+      })();
+    </script>
+  </body>
+</html>

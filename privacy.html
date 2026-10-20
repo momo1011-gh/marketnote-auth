@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"
+    />
+    <title>MarketNote認証中継 — プライバシー</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 720px;
+        margin: 40px auto;
+        padding: 0 20px;
+        line-height: 1.9;
+        color: #253b30;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>MarketNote認証中継ページについて</h1>
+      <p>
+        更新日：2026年10月20日。このページは、個人用MarketNoteとeBayを接続するための認証結果を、認証を開始したMacへ渡すページです。商品データを閲覧・公開するページではありません。
+      </p>
+      <h2>取り扱う情報</h2>
+      <p>
+        eBayから一時的な認可コードと、不正な認証の取り違えを防ぐ識別値を受け取ります。画面に受け取った値を表示せず、MacのMarketNoteへ戻るリンクに含めます。リンクの宛先は127.0.0.1の3000番で固定されています。認証コードはURLの「#」以降に含めるため、Macへの最初のページ取得には送信されません。その後、Mac内のアプリへ送信し、ブラウザと認証の一致を確認してからeBayの接続情報と交換します。
+      </p>
+      <p>
+        この中継ページは、eBayのパスワード、アクセストークン、更新トークンを受け取りません。認可コードをCookie・ブラウザ保存領域へ保存せず、広告・解析サービスへの送信も行いません。ただし、eBayからこのページへ最初にアクセスするURLには認可コードが含まれるため、公開先のホスティング事業者のアクセスログ等に残る可能性があります。
+      </p>
+      <h2>Mac内での利用と保存</h2>
+      <p>
+        MarketNoteは読み取り専用のアカウント設定の権限を使い、eBayの配送・支払い・返品設定を取得します。接続用のトークンはMac内に暗号化保存します。暗号鍵も同じMac内に保管するため、Macの利用者や管理者から秘密情報を完全に隔離する仕組みではありません。取得した設定が、そのまま出品可能であることを保証するものではありません。
+      </p>
+      <h2>切断</h2>
+      <p>
+        MarketNote側の接続情報の削除と、eBay側のアプリ許可の取消は別の操作です。eBay側の許可を取り消す場合は、ご自身のeBayアカウント設定を利用してください。
+      </p>
+      <h2>利用範囲</h2>
+      <p>
+        ご自身のMacで認証を開始した場合だけ使用してください。中継ページだけでは出品・価格変更・返金は実行しません。第三者向けの公開サービスとして利用する場合は、運営者の表示・問い合わせ先・公開先の条件を整える必要があります。
+      </p>
+    </main>
+  </body>
+</html>
